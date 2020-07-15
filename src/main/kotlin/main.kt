@@ -16,28 +16,37 @@ fun generateFirstPos(rnd: Random, minX: Double, maxX: Double, minY: Double, maxY
     )
 
 enum class Direction {
-    NORTH, SOUTH, EAST, WEST
+    NORTH, EAST, SOUTH, WEST
 }
 
-data class Room(var pos: Vector2, val width: Int, val openings: Collection<Direction>)
+fun oppositeDirection(direction: Direction) = Direction.values()[direction.ordinal + 2 % 4]
 
-fun generateRoom(drawer: Drawer, room: Room) {
+data class Room(var pos: Vector2, val openings: Collection<Direction>)
+
+fun generateRoom(rnd: Random, previousRoom: Room): Room {
+    // pick a random side from previous room
+    val side = previousRoom.openings.random(rnd)
+
+    return Room(Vector2.ZERO, listOf())
+}
+
+fun drawRoom(drawer: Drawer, room: Room) {
     // NORTH side
     if (room.openings.contains(Direction.NORTH)) {
         drawer.lineSegment(
             room.pos,
             Vector2(
-                room.pos.x + room.width / 3.0,
+                room.pos.x + ROOM_UNIT / 3.0,
                 room.pos.y
             )
         )
         drawer.lineSegment(
             Vector2(
-                room.pos.x + room.width - room.width / 3.0,
+                room.pos.x + ROOM_UNIT - ROOM_UNIT / 3.0,
                 room.pos.y
             ),
             Vector2(
-                room.pos.x + room.width,
+                room.pos.x + ROOM_UNIT,
                 room.pos.y
             )
         )
@@ -45,7 +54,7 @@ fun generateRoom(drawer: Drawer, room: Room) {
         drawer.lineSegment(
             room.pos,
             Vector2(
-                room.pos.x + room.width,
+                room.pos.x + ROOM_UNIT,
                 room.pos.y
             )
         )
@@ -55,33 +64,33 @@ fun generateRoom(drawer: Drawer, room: Room) {
     if (room.openings.contains(Direction.EAST)) {
         drawer.lineSegment(
             Vector2(
-                room.pos.x + room.width,
+                room.pos.x + ROOM_UNIT,
                 room.pos.y
             ),
             Vector2(
-                room.pos.x + room.width,
-                room.pos.y + room.width / 3.0
+                room.pos.x + ROOM_UNIT,
+                room.pos.y + ROOM_UNIT / 3.0
             )
         )
         drawer.lineSegment(
             Vector2(
-                room.pos.x + room.width,
-                room.pos.y + room.width - room.width / 3.0
+                room.pos.x + ROOM_UNIT,
+                room.pos.y + ROOM_UNIT - ROOM_UNIT / 3.0
             ),
             Vector2(
-                room.pos.x + room.width,
-                room.pos.y + room.width
+                room.pos.x + ROOM_UNIT,
+                room.pos.y + ROOM_UNIT
             )
         )
     } else {
         drawer.lineSegment(
             Vector2(
-                room.pos.x + room.width,
+                room.pos.x + ROOM_UNIT,
                 room.pos.y
             ),
             Vector2(
-                room.pos.x + room.width,
-                room.pos.y + room.width
+                room.pos.x + ROOM_UNIT,
+                room.pos.y + ROOM_UNIT
             )
         )
     }
@@ -91,32 +100,32 @@ fun generateRoom(drawer: Drawer, room: Room) {
         drawer.lineSegment(
             Vector2(
                 room.pos.x,
-                room.pos.y + room.width
+                room.pos.y + ROOM_UNIT
             ),
             Vector2(
-                room.pos.x + room.width / 3.0,
-                room.pos.y + room.width
+                room.pos.x + ROOM_UNIT / 3.0,
+                room.pos.y + ROOM_UNIT
             )
         )
         drawer.lineSegment(
             Vector2(
-                room.pos.x + room.width - room.width / 3.0,
-                room.pos.y + room.width
+                room.pos.x + ROOM_UNIT - ROOM_UNIT / 3.0,
+                room.pos.y + ROOM_UNIT
             ),
             Vector2(
-                room.pos.x + room.width,
-                room.pos.y + room.width
+                room.pos.x + ROOM_UNIT,
+                room.pos.y + ROOM_UNIT
             )
         )
     } else {
         drawer.lineSegment(
             Vector2(
                 room.pos.x,
-                room.pos.y + room.width
+                room.pos.y + ROOM_UNIT
             ),
             Vector2(
-                room.pos.x + room.width,
-                room.pos.y + room.width
+                room.pos.x + ROOM_UNIT,
+                room.pos.y + ROOM_UNIT
             )
         )
     }
@@ -127,17 +136,17 @@ fun generateRoom(drawer: Drawer, room: Room) {
             room.pos,
             Vector2(
                 room.pos.x,
-                room.pos.y + room.width / 3.0
+                room.pos.y + ROOM_UNIT / 3.0
             )
         )
         drawer.lineSegment(
             Vector2(
                 room.pos.x,
-                room.pos.y + room.width - room.width / 3.0
+                room.pos.y + ROOM_UNIT - ROOM_UNIT / 3.0
             ),
             Vector2(
                 room.pos.x,
-                room.pos.y + room.width
+                room.pos.y + ROOM_UNIT
             )
         )
     } else {
@@ -145,17 +154,18 @@ fun generateRoom(drawer: Drawer, room: Room) {
             room.pos,
             Vector2(
                 room.pos.x,
-                room.pos.y + room.width
+                room.pos.y + ROOM_UNIT
             )
         )
     }
 }
 
+const val ROOM_UNIT = 50
+
 @ExperimentalUnsignedTypes
 fun main() = application {
     var seed = generateSeed()
     val rnd = Random(seed)
-    val roomUnit = 50
 
     configure {
         width = 900
@@ -167,7 +177,7 @@ fun main() = application {
 
         var firstRoomPos = generateFirstPos(rnd, 50.0, width - 50.0, 50.0, height - 50.0)
         var firstRoom =
-            Room(firstRoomPos, roomUnit, listOf(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST))
+            Room(firstRoomPos, listOf(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST))
 
         keyboard.keyDown.listen {
             if (it.key == KEY_ENTER) {
@@ -175,7 +185,6 @@ fun main() = application {
                 firstRoomPos = generateFirstPos(rnd, 50.0, width - 50.0, 50.0, height - 50.0)
                 firstRoom = Room(
                     firstRoomPos,
-                    roomUnit,
                     listOf(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST)
                 )
             }
@@ -194,13 +203,13 @@ fun main() = application {
                 30.0
             )
 
-            generateRoom(drawer, firstRoom)
+            drawRoom(drawer, firstRoom)
 
             (0..4).forEach { i ->
-                generateRoom(
+                drawRoom(
                     drawer,
                     firstRoom.copy().also {
-                        it.pos = Vector2(firstRoom.pos.x + (it.width.toDouble() * i), firstRoom.pos.y)
+                        it.pos = Vector2(firstRoom.pos.x + (ROOM_UNIT.toDouble() * i), firstRoom.pos.y)
                     }
                 )
             }
