@@ -5,23 +5,13 @@ import org.openrndr.draw.loadFont
 import org.openrndr.extra.noise.perlinLinear
 import org.openrndr.math.Vector2
 import org.openrndr.math.map
+import kotlin.random.Random
 
-fun getRandomSeed(length: Int): String = List(length) { (('A'..'Z') + ('0'..'9')).random() }.joinToString("")
+fun generateSeed() = Random.nextInt(Int.MIN_VALUE, Int.MAX_VALUE)
 
-fun getSeedValue(value: String): Long {
-    return value.asSequence().map {
-        when (it) {
-            in ('A'..'Z') -> ('A'..'Z').indexOf(it)
-            else -> it.toInt()
-        }
-    }.joinToString("").toLongOrNull() ?: getSeedValue(value.dropLast(2))
-}
-
+@ExperimentalUnsignedTypes
 fun main() = application {
-    val length = 10
-    var seed = getRandomSeed(length)
-    var seedValue = getSeedValue(seed)
-
+    var seed = generateSeed()
     var start = .0
 
     configure {
@@ -34,8 +24,7 @@ fun main() = application {
 
         keyboard.keyDown.listen {
             if (it.key == KEY_ENTER) {
-                seed = getRandomSeed(length)
-                seedValue = getSeedValue(seed)
+                seed = generateSeed()
             }
         }
 
@@ -47,7 +36,7 @@ fun main() = application {
             drawer.strokeWeight = 2.0
 
             drawer.text(
-                "{Seed: $seed, Value: $seedValue}",
+                "{Seed: ${seed.toUInt().toString(36)}}",
                 20.0,
                 30.0
             )
@@ -55,16 +44,14 @@ fun main() = application {
             var offset = start
 
             for (x in 0..width) {
-                drawer.lineStrip(
-                    listOf(
-                        Vector2(
-                            x + .0,
-                            perlinLinear(seedValue.toInt(), offset).map(-1.0, 1.0, height * .75, height * .55)
-                        ),
-                        Vector2(
-                            x + .1,
-                            perlinLinear(seedValue.toInt(), offset).map(-1.0, 1.0, height * .75, height * .55)
-                        )
+                drawer.lineSegment(
+                    Vector2(
+                        x.toDouble(),
+                        perlinLinear(seed, offset).map(-1.0, 1.0, height * .75, height * .55)
+                    ),
+                    Vector2(
+                        x + .5,
+                        perlinLinear(seed, offset).map(-1.0, 1.0, height * .75, height * .55)
                     )
                 )
                 offset += .1
