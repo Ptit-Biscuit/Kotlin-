@@ -14,25 +14,33 @@ fun generateSeed() = Random.nextInt(Int.MIN_VALUE, Int.MAX_VALUE)
 const val ROOM_WIDTH = 50.0
 const val ROOM_OPENING_WIDTH = ROOM_WIDTH / 3.0
 
-val moveDown = Vector2(.0, ROOM_WIDTH)
-val moveRight = Vector2(ROOM_WIDTH, .0)
-val moveDownRight = Vector2(ROOM_WIDTH, ROOM_WIDTH)
-val horizontalOpeningStart = Vector2(ROOM_OPENING_WIDTH, .0)
+val moveDown = Vector2.UNIT_Y * ROOM_WIDTH
+val moveRight = Vector2.UNIT_X * ROOM_WIDTH
+val moveDownRight = Vector2.ONE * ROOM_WIDTH
+val horizontalOpeningStart = Vector2.UNIT_X * ROOM_OPENING_WIDTH
 val horizontalOpeningEnd = Vector2(ROOM_WIDTH - ROOM_OPENING_WIDTH, .0)
-val verticalOpeningStart = Vector2(.0, ROOM_OPENING_WIDTH)
+val verticalOpeningStart = Vector2.UNIT_Y * ROOM_OPENING_WIDTH
 val verticalOpeningEnd = Vector2(.0, ROOM_WIDTH - ROOM_OPENING_WIDTH)
 
 data class Room(val pos: Vector2, val openings: MutableCollection<Direction>)
 
-fun generateRooms(rnd: Random, grid: List<MutableList<Boolean>>, num: Int): MutableList<Room> {
+fun generateRooms(rnd: Random, grid: MutableList<MutableList<Boolean>>, num: Int): MutableList<Room> {
     val rooms = mutableListOf<Room>()
-    val firstRoomPos = Vector2(floor(grid.size / 2.0), floor(grid[0].size / 2.0))
+    val firstRoomPos = Vector2(floor(grid.size / 2.0), floor(grid[0].size / 2.0 - 1))
 
     // first room
+    grid[firstRoomPos.x.toInt()][firstRoomPos.y.toInt()] = true
     rooms.add(Room(firstRoomPos, mutableSetOf()))
 
     (1 until num).forEach {
-        rooms.add(generateRoom(rnd, rooms[it - 1]))
+        var room = generateRoom(rnd, rooms[it - 1])
+
+        while (grid[room.pos.x.toInt() % grid.size][room.pos.y.toInt() % grid[0].size]) {
+            room = generateRoom(rnd, rooms[it - 1])
+        }
+
+        grid[room.pos.x.toInt() % grid.size][room.pos.y.toInt() % grid[0].size] = true
+        rooms.add(room)
     }
 
     return rooms
@@ -47,10 +55,10 @@ fun generateRoom(rnd: Random, previousRoom: Room): Room {
 
     // calculate new room position
     val pos = when (side) {
-        Direction.NORTH -> Vector2(previousRoom.pos.x, previousRoom.pos.y - ROOM_WIDTH)
-        Direction.EAST -> Vector2(previousRoom.pos.x + ROOM_WIDTH, previousRoom.pos.y)
-        Direction.SOUTH -> Vector2(previousRoom.pos.x, previousRoom.pos.y + ROOM_WIDTH)
-        Direction.WEST -> Vector2(previousRoom.pos.x - ROOM_WIDTH, previousRoom.pos.y)
+        Direction.NORTH -> previousRoom.pos - Vector2.UNIT_Y
+        Direction.EAST -> previousRoom.pos + Vector2.UNIT_X
+        Direction.SOUTH -> previousRoom.pos + Vector2.UNIT_Y
+        Direction.WEST -> previousRoom.pos - Vector2.UNIT_X
     }
 
     return Room(pos, mutableSetOf(oppositeDirection(side)))
@@ -60,15 +68,13 @@ fun generateRoom(rnd: Random, previousRoom: Room): Room {
 fun generateGrid(width: Int, height: Int) =
     MutableList(width / ROOM_WIDTH.toInt() - 1) { MutableList(height / ROOM_WIDTH.toInt() - 2) { false } }
 
-fun toWorldPos(pos: Vector2) = Vector2(pos.x * ROOM_WIDTH + ROOM_WIDTH, pos.y * ROOM_WIDTH + (ROOM_WIDTH * 2))
-
 // ---------- DRAW UTILS ---------- //
+fun toWorldPos(pos: Vector2) =
+    Vector2(pos.x * ROOM_WIDTH + ROOM_WIDTH / 2.0, pos.y * ROOM_WIDTH + (ROOM_WIDTH * 1.5))
+
 fun drawRoom(drawer: Drawer, room: Room) {
     // convert grid position to world position
     val worldPos = toWorldPos(room.pos)
-
-    println(room.pos)
-    println(worldPos)
 
     // NORTH side
     if (room.openings.contains(Direction.NORTH)) {
@@ -113,8 +119,9 @@ fun oppositeDirection(direction: Direction) = Direction.values()[(direction.ordi
 @ExperimentalUnsignedTypes
 fun main() = application {
     var seed = generateSeed()
-    val rnd = Random(seed)
-    val numberOfRooms = 2
+    var rnd = Random(seed)
+    val numberOfRooms = 9
+
 
     configure {
         width = 900
@@ -123,13 +130,16 @@ fun main() = application {
 
     program {
         val font = loadFont("src/main/resources/VCR_OSD_MONO_1.001.ttf", 14.0)
-        val grid = generateGrid(width, height)
+        var grid = generateGrid(width, height)
         var rooms = generateRooms(rnd, grid, numberOfRooms)
 
         // listeners
         keyboard.keyDown.listen {
             if (it.key == KEY_ENTER) {
                 seed = generateSeed()
+                rnd = Random(seed)
+                grid = generateGrid(width, height)
+
                 rooms.clear()
                 rooms = generateRooms(rnd, grid, numberOfRooms)
             }
