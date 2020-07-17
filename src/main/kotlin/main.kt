@@ -1,7 +1,4 @@
-import org.openrndr.KEY_ARROW_UP
-import org.openrndr.KEY_ENTER
-import org.openrndr.MouseButton
-import org.openrndr.application
+import org.openrndr.*
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.Drawer
 import org.openrndr.draw.loadFont
@@ -83,6 +80,23 @@ fun generateRoom(rnd: Random, grid: MutableList<MutableList<Boolean>>, previousR
     return Room(pos, mutableSetOf(oppositeDirection(side)))
 }
 
+// ---------- PLAYER ---------- //
+data class Player(val name: String, var currentRoom: Room, val moves: MutableList<Direction>)
+
+fun updatePlayerPos(player: Player, rooms: List<Room>, direction: Direction) {
+    if (player.currentRoom.openings.contains(direction)) {
+        val goingBack = player.moves.isNotEmpty() && player.moves.last() == oppositeDirection(direction)
+
+        player.currentRoom = rooms[rooms.indexOf(player.currentRoom) + if (goingBack) -1 else 1]
+
+        if (goingBack) {
+            player.moves.remove(player.moves.last())
+        } else {
+            player.moves.add(direction)
+        }
+    }
+}
+
 // ---------- GRID ---------- //
 fun generateGrid(width: Int, height: Int) =
     MutableList(width / ROOM_WIDTH.toInt() - 1) { MutableList(height / ROOM_WIDTH.toInt() - 2) { false } }
@@ -146,6 +160,22 @@ fun drawRoom(drawer: Drawer, room: Room) {
     }
 }
 
+fun drawPlayer(drawer: Drawer, player: Player) {
+    val playerScale = ROOM_WIDTH / 5.0
+    val crossSection = Vector2(playerScale, playerScale)
+    val inverseCrossSection = Vector2(playerScale, -playerScale)
+
+    drawer.stroke = ColorRGBa.GREEN
+
+    // player world pos
+    val playerWorldPos = toWorldPos(player.currentRoom.pos) + ROOM_WIDTH / 2.0
+
+    drawer.lineSegment(playerWorldPos + crossSection, playerWorldPos - crossSection)
+    drawer.lineSegment(playerWorldPos + inverseCrossSection, playerWorldPos - inverseCrossSection)
+
+    drawer.stroke = ColorRGBa.WHITE
+}
+
 // ---------- DIRECTION ---------- //
 enum class Direction {
     NORTH, EAST, SOUTH, WEST
@@ -163,11 +193,14 @@ fun addDirection(direction: Direction, pos: Vector2) =
 
 @ExperimentalUnsignedTypes
 fun main() = application {
+    // seed
     var seed = generateSeed()
     var rnd = Random(seed)
+    // rooms
     var numberOfRooms = 9
     var roomsToDraw = 0
-
+    // players
+    val player = Player("toto", Room(Vector2.ZERO, mutableListOf()), mutableListOf())
 
     configure {
         width = 900
@@ -179,22 +212,30 @@ fun main() = application {
         var grid = generateGrid(width, height)
         var rooms = generateRooms(rnd, grid, numberOfRooms)
 
+        // update players positions
+        player.currentRoom = rooms.first()
+
         // listeners
         keyboard.keyDown.listen {
             // reset all
-            if (it.key == KEY_ENTER) {
+            if (it.name == "r") {
                 seed = generateSeed()
                 rnd = Random(seed)
-                grid = generateGrid(width, height)
+
                 numberOfRooms = 9
                 roomsToDraw = 0
 
+                grid = generateGrid(width, height)
+
                 rooms.clear()
                 rooms = generateRooms(rnd, grid, numberOfRooms)
+
+                player.currentRoom = rooms.first()
+                player.moves.clear()
             }
 
             // add one room
-            if (it.key == KEY_ARROW_UP) {
+            if (it.name == "k") {
                 val room = generateRoom(rnd, grid, rooms.last())
 
                 if (room != null) {
@@ -204,14 +245,36 @@ fun main() = application {
                     println("DEAD END!")
                 }
             }
-        }
 
-        mouse.buttonDown.listen {
             // draw next room
-            if (it.button == MouseButton.LEFT) {
+            if (it.name == "l") {
                 if (roomsToDraw < numberOfRooms - 1) {
                     roomsToDraw++
                 }
+            }
+
+            // clear last room
+            if (it.name == "j") {
+                if (roomsToDraw > 0) {
+                    roomsToDraw--
+                }
+            }
+
+            // player movements
+            if (it.key == KEY_ARROW_UP) {
+                updatePlayerPos(player, rooms, Direction.NORTH)
+            }
+
+            if (it.key == KEY_ARROW_RIGHT) {
+                updatePlayerPos(player, rooms, Direction.EAST)
+            }
+
+            if (it.key == KEY_ARROW_DOWN) {
+                updatePlayerPos(player, rooms, Direction.SOUTH)
+            }
+
+            if (it.key == KEY_ARROW_LEFT) {
+                updatePlayerPos(player, rooms, Direction.WEST)
             }
         }
 
@@ -222,13 +285,16 @@ fun main() = application {
             drawer.strokeWeight = 2.0
 
             // display useful data
-            drawer.text("{Seed: ${seed.toUInt().toString(36)} - Value: $seed}", 20.0, 30.0)
+            drawer.text("{Seed: ${seed.toUInt().toString(36)}}", 20.0, 30.0)
 
             // draw grid points
-            drawGridPoints(drawer, grid)
+            // drawGridPoints(drawer, grid)
 
             // draw rooms
             (0..roomsToDraw).forEach { drawRoom(drawer, rooms[it]) }
+
+            // draw player
+            drawPlayer(drawer, player)
         }
     }
 }
