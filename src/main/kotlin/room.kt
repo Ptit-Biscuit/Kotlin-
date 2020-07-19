@@ -2,14 +2,14 @@ import org.openrndr.math.Vector2
 import kotlin.math.floor
 import kotlin.random.Random
 
-data class Room(val pos: Vector2, val openings: MutableCollection<Direction>, var hasEnemy: Boolean)
+data class Room(val pos: Vector2, val openings: MutableCollection<Direction>, var event: Event?)
 
 fun generateRooms(rnd: Random, grid: MutableList<MutableList<Boolean>>, num: Int): MutableList<Room> {
     val rooms = mutableListOf<Room>()
 
     // first room and update grid
     val firstRoomPos = Vector2(floor(grid.size / 2.0), floor(grid[0].size / 2.0 - 1))
-    val firstRoom = Room(firstRoomPos, mutableSetOf(), false)
+    val firstRoom = Room(firstRoomPos, mutableSetOf(), null)
     grid[firstRoomPos.x.toInt()][firstRoomPos.y.toInt()] = true
     rooms.add(firstRoom)
 
@@ -59,8 +59,23 @@ fun generateRoom(rnd: Random, grid: MutableList<MutableList<Boolean>>, previousR
     // update grid
     grid[pos.x.toInt()][pos.y.toInt()] = true
 
+    return Room(pos, mutableSetOf(oppositeDirection(side)), generateEvent(rnd))
+}
+
+fun generateEvent(rnd: Random): Event? {
     // enemy spawn
     val hasEnemy = rnd.nextDouble(.1, 1.0) > ENEMY_SPAWN_THRESHOLD
 
-    return Room(pos, mutableSetOf(oppositeDirection(side)), hasEnemy)
+    // power up spawn
+    val hasPowerUp = rnd.nextDouble(.1, 1.0) > POWER_UP_SPAWN_THRESHOLD
+
+    // consumable spawn
+    val hasConsumable = rnd.nextDouble(.1, 1.0) > CONSUMABLE_SPAWN_THRESHOLD
+
+    return when {
+        hasEnemy -> Event.BATTLE
+        hasPowerUp -> Event.POWER_UP
+        hasConsumable -> Event.CONSUMABLE
+        else -> null
+    }
 }

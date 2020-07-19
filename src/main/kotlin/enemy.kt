@@ -1,1 +1,1 @@
-data class Enemy(var health: Int, var attack: Int)
+data class Enemy(val name: String, var health: Int, var attack: Int)

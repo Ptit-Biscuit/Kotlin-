@@ -1,5 +1,4 @@
 import org.openrndr.*
-import org.openrndr.animatable.Animatable
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
@@ -23,16 +22,28 @@ const val PLAYER_SCALE = ROOM_WIDTH / 5.0
 const val ENEMY_SPAWN_THRESHOLD = .75
 const val ENEMY_SCALE = ROOM_WIDTH / 3.0
 
+// ---------- POWER UPS ---------- //
+const val POWER_UP_SPAWN_THRESHOLD = .95
+const val POWER_UP_SCALE = ROOM_WIDTH / 3.0
+
+// ---------- CONSUMABLES ---------- //
+const val CONSUMABLE_SPAWN_THRESHOLD = .90
+const val CONSUMABLE_SCALE = ROOM_WIDTH / 3.2
+
 @ExperimentalUnsignedTypes
 fun main() = application {
+    println("----- NEW GAME -----")
+
     // seed
     var seed = generateSeed()
+    println("Seed: ${seed.toUInt().toString(36)}")
+
     var rnd = Random(seed)
     // rooms
     var numberOfRooms = 9
-    var roomsToDraw = 0
     // player
-    val player = Player("toto", 10, 1, Room(Vector2.ZERO, mutableListOf(), false), mutableListOf())
+    val player = Player("toto", currentRoom = Room(Vector2.ZERO, mutableListOf(), null))
+    println("Player: ${player.name}")
 
     // user interface
     var debugView = false
@@ -46,6 +57,7 @@ fun main() = application {
         val font = loadFont("src/main/resources/VCR_OSD_MONO_1.001.ttf", 14.0)
         var grid = generateGrid(width, height)
         var rooms = generateRooms(rnd, grid, numberOfRooms)
+        println(rooms.toString())
 
         val toaster = Toaster("")
 
@@ -61,20 +73,20 @@ fun main() = application {
 
             // reset all
             if (it.name == "r") {
+                println("----- NEW GAME -----")
                 seed = generateSeed()
+                println("Seed: ${seed.toUInt().toString(36)}")
                 rnd = Random(seed)
 
                 numberOfRooms = 9
-                roomsToDraw = 0
 
                 grid = generateGrid(width, height)
 
                 rooms.clear()
                 rooms = generateRooms(rnd, grid, numberOfRooms)
+                println(rooms.toString())
 
-                player.health = 10
-                player.currentRoom = rooms.first()
-                player.moves.clear()
+                player.reset(rooms.first())
             }
 
             // add one room => TODO: power up related
@@ -89,35 +101,21 @@ fun main() = application {
                 }
             }
 
-            // draw next room => TODO: power up related
-            if (it.name == "l") {
-                if (roomsToDraw < numberOfRooms - 1) {
-                    roomsToDraw++
-                }
-            }
-
-            // clear last room => TODO: power up related
-            if (it.name == "j") {
-                if (roomsToDraw > 0) {
-                    roomsToDraw--
-                }
-            }
-
             // player movements
             if (it.key == KEY_ARROW_UP) {
-                updatePlayerPos(player, rooms, Direction.NORTH)
+                player.updatePos(rooms, Direction.NORTH)
             }
 
             if (it.key == KEY_ARROW_RIGHT) {
-                updatePlayerPos(player, rooms, Direction.EAST)
+                player.updatePos(rooms, Direction.EAST)
             }
 
             if (it.key == KEY_ARROW_DOWN) {
-                updatePlayerPos(player, rooms, Direction.SOUTH)
+                player.updatePos(rooms, Direction.SOUTH)
             }
 
             if (it.key == KEY_ARROW_LEFT) {
-                updatePlayerPos(player, rooms, Direction.WEST)
+                player.updatePos(rooms, Direction.WEST)
             }
         }
 
@@ -134,31 +132,33 @@ fun main() = application {
                 drawer.text(toaster.message, 350.0, toaster.y)
             }
 
-            // display player data
-            drawer.text(
-                "${player.name} has ${player.health} heart${if (player.health > 1) "s" else ""} left",
-                20.0,
-                30.0
-            )
-            drawer.text("sword: ${player.attack} damage", 20.0, 50.0)
+            // draw player data
+            drawPlayerData(drawer, player)
 
             if (debugView) {
-                // display seed
-                drawer.text("{Seed: ${seed.toUInt().toString(36)}}", width - 150.0, 30.0)
-
-                // draw grid points
-                drawGridPoints(drawer, grid)
+                drawDebugView(drawer, width, seed, grid, player)
             }
 
             // draw rooms
-            (0..roomsToDraw).forEach { drawRoom(drawer, rooms[it]) }
+            rooms.forEach {
+                drawRoom(drawer, it)
+            }
 
             // draw player
             drawPlayer(drawer, player)
 
-            // manage battle
-            if (player.currentRoom.hasEnemy && player.health > 0) {
-                manageBattle(player.currentRoom, player, Enemy(2, 1), toaster)
+            // manage events
+            when (player.currentRoom.event) {
+                Event.BATTLE -> {
+                    if (player.health > 0) {
+                        manageBattle(player, Enemy("Noob", 2, 1), toaster)
+                    }
+                }
+                Event.CONSUMABLE -> manageConsumable(player, Consumable.values().random(rnd), toaster)
+                Event.POWER_UP -> managePowerUp(player, PowerUp.values().random(rnd), toaster)
+                null -> {
+                    // do nothing
+                }
             }
         }
     }
