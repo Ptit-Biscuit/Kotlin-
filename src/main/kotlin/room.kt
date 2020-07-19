@@ -58,5 +58,9 @@ fun generateRoom(rnd: Random, grid: MutableList<MutableList<Boolean>>, previousR
 
     // update grid
     grid[pos.x.toInt()][pos.y.toInt()] = true
-    return Room(pos, mutableSetOf(oppositeDirection(side)), rnd.nextDouble(.1, 1.0) > ENEMY_SPAWN_THRESHOLD)
+
+    // enemy spawn
+    val hasEnemy = rnd.nextDouble(.1, 1.0) > ENEMY_SPAWN_THRESHOLD
+
+    return Room(pos, mutableSetOf(oppositeDirection(side)), hasEnemy)
 }

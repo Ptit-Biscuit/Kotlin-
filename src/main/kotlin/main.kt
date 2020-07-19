@@ -1,4 +1,5 @@
 import org.openrndr.*
+import org.openrndr.animatable.Animatable
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.loadFont
 import org.openrndr.math.Vector2
@@ -22,6 +23,18 @@ const val PLAYER_SCALE = ROOM_WIDTH / 5.0
 const val ENEMY_SPAWN_THRESHOLD = .75
 const val ENEMY_SCALE = ROOM_WIDTH / 3.0
 
+// ---------- TOASTER ---------- //
+class Toaster(var message: String) : Animatable() {
+    var y: Double = -10.0
+
+    fun showToaster() {
+        animate("y", 50.0, 1000)
+        delay(2500)
+        animate("y", -10.0, 1000)
+        complete()
+    }
+}
+
 @ExperimentalUnsignedTypes
 fun main() = application {
     // seed
@@ -31,7 +44,10 @@ fun main() = application {
     var numberOfRooms = 9
     var roomsToDraw = 0
     // player
-    val player = Player("toto", Room(Vector2.ZERO, mutableListOf(), false), mutableListOf())
+    val player = Player("toto", 10, 1, Room(Vector2.ZERO, mutableListOf(), false), mutableListOf())
+
+    // user interface
+    var debugView = false
 
     configure {
         width = 900
@@ -43,11 +59,18 @@ fun main() = application {
         var grid = generateGrid(width, height)
         var rooms = generateRooms(rnd, grid, numberOfRooms)
 
-        // update players positions
+        val toaster = Toaster("")
+
+        // update players position
         player.currentRoom = rooms.first()
 
         // listeners
         keyboard.keyDown.listen {
+            // debug view
+            if (it.key == KEY_TAB) {
+                debugView = !debugView
+            }
+
             // reset all
             if (it.name == "r") {
                 seed = generateSeed()
@@ -61,6 +84,7 @@ fun main() = application {
                 rooms.clear()
                 rooms = generateRooms(rnd, grid, numberOfRooms)
 
+                player.health = 10
                 player.currentRoom = rooms.first()
                 player.moves.clear()
             }
@@ -115,17 +139,39 @@ fun main() = application {
             drawer.stroke = ColorRGBa.WHITE
             drawer.strokeWeight = 2.0
 
-            // display useful data
-            drawer.text("{Seed: ${seed.toUInt().toString(36)}}", 20.0, 30.0)
+            // animation
+            toaster.updateAnimation()
 
-            // draw grid points
-            // drawGridPoints(drawer, grid)
+            if (toaster.hasAnimations()) {
+                drawer.text(toaster.message, 350.0, toaster.y)
+            }
+
+            // display player data
+            drawer.text(
+                "${player.name} has ${player.health} heart${if (player.health > 1) "s" else ""} left",
+                20.0,
+                30.0
+            )
+            drawer.text("sword: ${player.attack} damage", 20.0, 50.0)
+
+            if (debugView) {
+                // display seed
+                drawer.text("{Seed: ${seed.toUInt().toString(36)}}", width - 150.0, 30.0)
+
+                // draw grid points
+                drawGridPoints(drawer, grid)
+            }
 
             // draw rooms
             (0..roomsToDraw).forEach { drawRoom(drawer, rooms[it]) }
 
             // draw player
             drawPlayer(drawer, player)
+
+            // manage battle
+            if (player.currentRoom.hasEnemy && player.health > 0) {
+                manageBattle(player.currentRoom, player, Enemy(2, 1), toaster)
+            }
         }
     }
 }

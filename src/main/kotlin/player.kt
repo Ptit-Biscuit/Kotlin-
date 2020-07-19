@@ -1,6 +1,12 @@
 import org.openrndr.math.Vector2
 
-data class Player(val name: String, var currentRoom: Room, val moves: MutableList<Direction>)
+data class Player(
+    val name: String,
+    var health: Int,
+    var attack: Int,
+    var currentRoom: Room,
+    val moves: MutableList<Direction>
+)
 
 fun updatePlayerPos(player: Player, rooms: List<Room>, direction: Direction) {
     if (player.currentRoom.openings.contains(direction)) {

@@ -1,1 +1,1 @@
-data class Enemy(var health: Int, val room: Room)
+data class Enemy(var health: Int, var attack: Int)

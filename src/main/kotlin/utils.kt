@@ -68,7 +68,7 @@ fun drawRoom(drawer: Drawer, room: Room) {
     }
 
     if (room.hasEnemy) {
-        drawEnemy(drawer, Enemy(1, room))
+        drawEnemy(drawer, room)
     }
 }
 
@@ -87,12 +87,12 @@ fun drawPlayer(drawer: Drawer, player: Player) {
     drawer.stroke = ColorRGBa.WHITE
 }
 
-fun drawEnemy(drawer: Drawer, enemy: Enemy) {
+fun drawEnemy(drawer: Drawer, room: Room) {
     drawer.stroke = ColorRGBa.RED
     drawer.fill = ColorRGBa.TRANSPARENT
 
     // enemy world pos
-    val enemyWorldPos = toWorldPos(enemy.room.pos) + ROOM_WIDTH / 2.0
+    val enemyWorldPos = toWorldPos(room.pos) + ROOM_WIDTH / 2.0
 
     drawer.circle(enemyWorldPos, ENEMY_SCALE)
 
