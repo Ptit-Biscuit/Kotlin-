@@ -23,18 +23,6 @@ const val PLAYER_SCALE = ROOM_WIDTH / 5.0
 const val ENEMY_SPAWN_THRESHOLD = .75
 const val ENEMY_SCALE = ROOM_WIDTH / 3.0
 
-// ---------- TOASTER ---------- //
-class Toaster(var message: String) : Animatable() {
-    var y: Double = -10.0
-
-    fun showToaster() {
-        animate("y", 50.0, 1000)
-        delay(2500)
-        animate("y", -10.0, 1000)
-        complete()
-    }
-}
-
 @ExperimentalUnsignedTypes
 fun main() = application {
     // seed
