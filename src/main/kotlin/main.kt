@@ -12,6 +12,7 @@ fun generateGrid(width: Int, height: Int) =
     MutableList(width / ROOM_WIDTH.toInt() - 1) { MutableList(height / ROOM_WIDTH.toInt() - 2) { false } }
 
 // ---------- ROOM ---------- //
+const val NUMBER_OF_ROOMS = 9
 const val ROOM_WIDTH = 50.0
 const val ROOM_OPENING_WIDTH = ROOM_WIDTH / 3.0
 
@@ -39,8 +40,6 @@ fun main() = application {
     println("Seed: ${seed.toUInt().toString(36)}")
 
     var rnd = Random(seed)
-    // rooms
-    var numberOfRooms = 9
     // player
     val player = Player("toto", currentRoom = Room(Vector2.ZERO, mutableListOf(), null))
     println("Player: ${player.name}")
@@ -56,7 +55,7 @@ fun main() = application {
     program {
         val font = loadFont("src/main/resources/VCR_OSD_MONO_1.001.ttf", 14.0)
         var grid = generateGrid(width, height)
-        var rooms = generateRooms(rnd, grid, numberOfRooms)
+        var rooms = generateRooms(rnd, grid, NUMBER_OF_ROOMS)
         println(rooms.toString())
 
         val toaster = Toaster("")
@@ -78,12 +77,10 @@ fun main() = application {
                 println("Seed: ${seed.toUInt().toString(36)}")
                 rnd = Random(seed)
 
-                numberOfRooms = 9
-
                 grid = generateGrid(width, height)
 
                 rooms.clear()
-                rooms = generateRooms(rnd, grid, numberOfRooms)
+                rooms = generateRooms(rnd, grid, NUMBER_OF_ROOMS)
                 println(rooms.toString())
 
                 player.reset(rooms.first())
@@ -94,7 +91,6 @@ fun main() = application {
                 val room = generateRoom(rnd, grid, rooms.last())
 
                 if (room != null) {
-                    numberOfRooms++
                     rooms.add(room)
                 } else {
                     println("DEAD END!")
@@ -149,9 +145,38 @@ fun main() = application {
 
             // manage events
             when (player.currentRoom.event) {
-                Event.BATTLE -> {
+                Event.BATTLE, Event.BOSS -> {
                     if (player.health > 0) {
-                        manageBattle(player, Enemy("Noob", 2, 1), toaster)
+                        val enemy =
+                            if (player.currentRoom.event == Event.BATTLE) Enemy("Noob", 2, 1)
+                            else Enemy("Boss", 5, 2)
+
+                        if (manageBattle(player, enemy, toaster)) {
+                            // Win
+                            println("----- BATTLE WON -----")
+
+                            if (player.currentRoom.event == Event.BOSS) {
+                                var i = 9
+                                var room = generateRoom(rnd, grid, rooms.last())
+
+                                while (i > 1) {
+                                    if (room != null) {
+                                        rooms.add(room)
+                                        room = generateRoom(rnd, grid, rooms.last())
+                                    }
+
+                                    i--
+                                }
+                            }
+
+                            consumeEvent(player, "Enemy defeated! Hurray!", toaster)
+                        } else {
+                            // Lose
+                            println("----- BATTLE LOSE -----")
+                            consumeEvent(player, "You were defeated! Too bad!", toaster)
+
+                            println("----- GAME OVER -----")
+                        }
                     }
 
                     // update player effects
@@ -171,7 +196,7 @@ fun main() = application {
                 }
                 Event.CONSUMABLE -> manageConsumable(player, Consumable.values().random(rnd), toaster)
                 Event.POWER_UP -> managePowerUp(player, PowerUp.values().random(rnd), toaster)
-                null -> {
+                else -> {
                     // do nothing
                 }
             }

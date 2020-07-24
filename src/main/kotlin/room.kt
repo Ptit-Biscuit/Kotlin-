@@ -23,6 +23,8 @@ fun generateRooms(rnd: Random, grid: MutableList<MutableList<Boolean>>, num: Int
         }
     }
 
+    rooms.last().event = Event.BOSS
+
     return rooms
 }
 

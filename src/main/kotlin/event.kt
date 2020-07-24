@@ -1,10 +1,11 @@
 enum class Event {
     BATTLE,
+    BOSS,
     CONSUMABLE,
     POWER_UP,
 }
 
-fun manageBattle(player: Player, enemy: Enemy, toaster: Toaster) {
+fun manageBattle(player: Player, enemy: Enemy, toaster: Toaster): Boolean {
     println("----- BATTLE MANAGEMENT -----")
     println(
         "Player ${player.name}: ${player.health} health / ${player.attack} attack / ${player.shield} shield / foresight: ${player.effects.contains(
@@ -45,17 +46,7 @@ fun manageBattle(player: Player, enemy: Enemy, toaster: Toaster) {
     println("Player ${player.name}: ${player.health} health / ${player.attack} attack / ${player.shield} shield")
     println("Enemy ${enemy.name}: ${enemy.health} health / ${enemy.attack} attack")
 
-    if (enemy.health <= 0 && player.health > 0) {
-        // Win
-        println("----- BATTLE WON -----")
-        consumeEvent(player, "Enemy defeated! Hurray!", toaster)
-    } else {
-        // Lose
-        println("----- BATTLE LOSE -----")
-        consumeEvent(player, "You were defeated! Too bad!", toaster)
-
-        println("----- GAME OVER -----")
-    }
+    return enemy.health <= 0 && player.health > 0
 }
 
 fun manageConsumable(player: Player, consumable: Consumable, toaster: Toaster) {

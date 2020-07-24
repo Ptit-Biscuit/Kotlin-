@@ -80,7 +80,7 @@ fun drawRoom(drawer: Drawer, room: Room) {
     }
 
     when (room.event) {
-        Event.BATTLE -> drawEnemy(drawer, room)
+        Event.BATTLE, Event.BOSS -> drawEnemy(drawer, room)
         Event.CONSUMABLE -> drawConsumable(drawer, room)
         Event.POWER_UP -> drawPowerUp(drawer, room)
         null -> {
