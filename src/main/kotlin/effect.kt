@@ -9,6 +9,7 @@ enum class EffectType {
 enum class Effect(
     val apply: (Player) -> Unit,
     val effectType: EffectType,
+    val endEffect: (Player) -> Unit,
     var duration: Int = -1,
     val endMessage: String = ""
 ) {
@@ -19,6 +20,13 @@ enum class Effect(
             println("Player ${it.name} attack: ${it.attack} (2 battles)")
         },
         EffectType.BATTLE,
+        {
+            it.attack /= 2
+
+            if (it.attack < 1) {
+                it.attack = 1
+            }
+        },
         2,
         "Strength back to normal"
     ),
@@ -29,11 +37,14 @@ enum class Effect(
             it.attack += ceil(it.attack * .2).toInt()
             println("Player ${it.name} attack: ${it.attack}")
         },
-        EffectType.PERMANENT
+        EffectType.PERMANENT,
+        {
+            it.attack -= ceil(it.attack * .2).toInt()
+        }
     ),
 
     // attack before enemy in battle
-    FORESIGHT({}, EffectType.PERMANENT),
+    FORESIGHT({}, EffectType.PERMANENT, {}),
 
     // heal 20% of max health
     HEAL(
@@ -46,7 +57,8 @@ enum class Effect(
 
             println("Player ${it.name} health: ${it.health}")
         },
-        EffectType.ONE_SHOT
+        EffectType.ONE_SHOT,
+        {}
     ),
 
     // increased max health by 1
@@ -57,7 +69,8 @@ enum class Effect(
 
             println("Player ${it.name} max health: ${it.maxHealth}")
         },
-        EffectType.PERMANENT
+        EffectType.PERMANENT,
+        {}
     ),
 
     // Blocks 3 attacks
@@ -68,7 +81,6 @@ enum class Effect(
             println("Player ${it.name} shield: ${it.shield}")
         },
         EffectType.BATTLE,
-        3,
-        "Shield broke"
+        {}
     ),
 }

@@ -2,7 +2,7 @@ import org.openrndr.math.Vector2
 
 class Player(
     val name: String,
-    var maxHealth: Int = 10,
+    var maxHealth: Int = 20,
     var health: Int = 20,
     var attack: Int = 1,
     var shield: Int = 0,

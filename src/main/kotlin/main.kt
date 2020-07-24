@@ -153,6 +153,21 @@ fun main() = application {
                     if (player.health > 0) {
                         manageBattle(player, Enemy("Noob", 2, 1), toaster)
                     }
+
+                    // update player effects
+                    player.effects
+                        .filter { it.effectType == EffectType.BATTLE }
+                        .forEach {
+                            it.duration--
+
+                            if (it.duration == 0) {
+                                println("Effect ${it.name} finished for ${player.name}")
+                                it.endEffect(player)
+                                toaster.message = it.endMessage
+                                toaster.show()
+                            }
+                        }
+                    player.effects.removeIf { it.duration == 0 }
                 }
                 Event.CONSUMABLE -> manageConsumable(player, Consumable.values().random(rnd), toaster)
                 Event.POWER_UP -> managePowerUp(player, PowerUp.values().random(rnd), toaster)

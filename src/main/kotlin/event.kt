@@ -6,18 +6,6 @@ enum class Event {
 
 fun manageBattle(player: Player, enemy: Enemy, toaster: Toaster) {
     println("----- BATTLE MANAGEMENT -----")
-
-    // decrement duration of battle effects
-    // effects can be stacked so we decrement only one
-    // of each 'type'
-    player.effects.toSet().filter {
-        it.effectType == EffectType.BATTLE
-    }.forEach {
-        println("Battle effect ${it.name}: ${it.duration - 1}")
-        it.duration--
-    }
-
-    println("----- BATTLE START -----")
     println(
         "Player ${player.name}: ${player.health} health / ${player.attack} attack / ${player.shield} shield / foresight: ${player.effects.contains(
             Effect.FORESIGHT
@@ -25,36 +13,37 @@ fun manageBattle(player: Player, enemy: Enemy, toaster: Toaster) {
     )
     println("Enemy ${enemy.name}: ${enemy.health} health / ${enemy.attack} attack")
 
+    println("----- BATTLE START -----")
     while (player.health > 0 && enemy.health > 0) {
+        val enemyAttack = if (enemy.attack - player.shield >= 0) enemy.attack - player.shield else 0
+
         if (player.effects.contains(Effect.FORESIGHT)) {
             // player attack first
             enemy.health -= player.attack
-            player.health -= (enemy.attack - player.shield)
+
+            if (enemy.health > 0) {
+                player.health -= enemyAttack
+            }
         } else {
             // enemy attack first
-            player.health -= (enemy.attack - player.shield)
+            player.health -= enemyAttack
             enemy.health -= player.attack
         }
 
         if (player.shield > 0) {
-            player.shield--
+            player.shield -= enemy.attack
+
+            if (player.shield < 0) {
+                player.shield = 0
+                toaster.message = "Shield broke"
+                toaster.show()
+            }
         }
     }
 
     println("----- BATTLE END -----")
     println("Player ${player.name}: ${player.health} health / ${player.attack} attack / ${player.shield} shield")
     println("Enemy ${enemy.name}: ${enemy.health} health / ${enemy.attack} attack")
-
-    // update player effects
-    player.effects.forEach {
-        if (it.duration == 0) {
-            println("Effect ${it.name} finished for ${player.name}")
-
-            toaster.message = it.endMessage
-            toaster.show()
-        }
-    }
-    player.effects.removeIf { it.duration == 0 }
 
     if (enemy.health <= 0 && player.health > 0) {
         // Win
@@ -74,18 +63,17 @@ fun manageConsumable(player: Player, consumable: Consumable, toaster: Toaster) {
 
     if (consumable == Consumable.HEATH_POTION && player.health == player.maxHealth) {
         println("Health potion not needed")
-        return
+    } else {
+        println("Apply effect ${consumable.effect.name} (${consumable.effect.effectType}) to ${player.name}")
+        consumable.effect.apply(player)
+
+        if (consumable.effect.duration > 0) {
+            println("Effect ${consumable.effect.name} stored in ${player.name} effects for ${consumable.effect.duration} turn(s)")
+            player.effects.add(consumable.effect)
+        }
+
+        consumeEvent(player, consumable.label, toaster)
     }
-
-    println("Apply effect ${consumable.effect.name} (${consumable.effect.effectType}) to ${player.name}")
-    consumable.effect.apply(player)
-
-    if (consumable.effect.duration > 0) {
-        println("Effect ${consumable.effect.name} stored in ${player.name} effects for ${consumable.effect.duration} turn(s)")
-        player.effects.add(consumable.effect)
-    }
-
-    consumeEvent(player, consumable.label, toaster)
 }
 
 fun managePowerUp(player: Player, powerUp: PowerUp, toaster: Toaster) {
